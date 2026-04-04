@@ -6,3 +6,6 @@ pyotp
 python-dotenv
 psycopg2-binary
 pillow
+requests
+gunicorn
+whitenoise
