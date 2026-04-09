@@ -1,213 +1,174 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Shield, HelpCircle, ShieldCheck, Lock, Phone, ChevronRight, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Phone, Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import loginBg from '../assets/login-bg.png';
 
 const Login = () => {
-    const [credentials, setCredentials] = useState({ phone: '', password: '' });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const { login, setSession } = useAuth();
-    const navigate = useNavigate();
+  const [activeRole, setActiveRole] = useState('admin');
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ identifier: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-    const handleChange = (e) => {
-        setCredentials({ ...credentials, [e.target.name]: e.target.value });
-    };
+  const demoCredentials = {
+    admin: { id: 'admin@school.com', pass: 'admin123' },
+    hod: { id: '9876543210', pass: 'hod123' },
+    principal: { id: '9123456789', pass: 'principal123' },
+    teacher: { id: '9988776655', pass: 'teacher123' },
+    student: { id: '9123456780', pass: 'student123' },
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-        try {
-            const data = await login(credentials.phone, credentials.password);
-            
-            if (data.bypass_otp) {
-                // Admin/Superuser bypass: Store token and redirect via role-switch
-                const { access, refresh, user: userData, role } = data;
-                setSession(userData, access, refresh);
-                
-                // Senior-Dev Implementation: Role-based Switch Redirection
-                switch (role.toLowerCase()) {
-                    case 'admin':
-                        navigate('/admin/dashboard');
-                        break;
-                    case 'principal':
-                        navigate('/principal/dashboard');
-                        break;
-                    case 'hod':
-                        navigate('/hod/dashboard');
-                        break;
-                    case 'teacher':
-                        navigate('/teacher/dashboard');
-                        break;
-                    case 'student':
-                        navigate('/student/dashboard');
-                        break;
-                    default:
-                        navigate('/dashboard');
-                }
-            } else {
-                // Regular user flow (Requires OTP)
-                navigate('/verify-otp', { state: { phone: credentials.phone } });
-            }
-        } catch (err) {
-            console.error("Login Error:", err);
-            setError(err.response?.data?.error || 'Access Denied: Invalid Credentials');
-        } finally {
-            setLoading(false);
+  const roles = [
+    { id: 'admin', label: 'Admin' },
+    { id: 'hod', label: 'HOD' },
+    { id: 'principal', label: 'Principal' },
+    { id: 'teacher', label: 'Teacher' },
+    { id: 'student', label: 'Student' },
+  ];
+
+  useEffect(() => {
+    const creds = demoCredentials[activeRole];
+    setFormData({ identifier: creds.id, password: creds.pass });
+    setError('');
+  }, [activeRole]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await login(formData.identifier, formData.password);
+      
+      if (result.success) {
+        if (result.bypass) {
+          const role = (result.user?.role || activeRole).toLowerCase();
+          navigate(`/${role}/dashboard`);
+        } else {
+          navigate('/verify-otp', { state: { username: result.username } });
         }
-    };
+      } else {
+        // Show specific error from backend if available
+        setError(result.error);
+      }
+    } catch (err) {
+      setError('Connection Error: Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <div className="min-h-screen bg-white text-[#0f172a] font-sans selection:bg-indigo-100 flex flex-col items-center justify-center relative overflow-hidden">
-            {/* Soft Ambient Background */}
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
-                <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-purple-500/[0.05] blur-[150px] rounded-full" />
-                <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-cyan-500/[0.05] blur-[150px] rounded-full" />
+  return (
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden font-sans">
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg})` }}
+      >
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]"></div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative z-10 w-full max-w-[480px] px-6"
+      >
+        <div className="glass-card rounded-[40px] p-10 flex flex-col items-center border border-white/40 shadow-2xl">
+          <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Sign In</h1>
+          <p className="text-gray-500 font-medium mb-8 text-center">Enter details for {activeRole.toUpperCase()} portal</p>
+
+          <div className="bg-gray-100/80 p-1.5 rounded-2xl flex gap-1 mb-10 w-full overflow-x-auto no-scrollbar">
+            {roles.map((role) => (
+              <button
+                key={role.id}
+                onClick={() => setActiveRole(role.id)}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex-shrink-0 ${
+                  activeRole === role.id 
+                    ? 'bg-gradient-primary text-white shadow-lg' 
+                    : 'text-gray-500 hover:bg-white/50'
+                }`}
+              >
+                {role.label}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="w-full space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-gray-400">
+                {activeRole === 'admin' ? 'Email Address' : 'Phone Number'}
+              </label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  {activeRole === 'admin' ? <Mail size={20} /> : <Phone size={20} />}
+                </div>
+                <input
+                  type={activeRole === 'admin' ? 'email' : 'text'}
+                  required
+                  className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 text-gray-800 font-medium focus:ring-2 focus:ring-primary/20"
+                  value={formData.identifier}
+                  onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                />
+              </div>
             </div>
 
-            {/* Page Header */}
-            <header className="absolute top-0 w-full z-10 px-8 py-6 flex justify-between items-center transition-all opacity-80">
-                <h2 className="text-[#6366f1] font-bold text-base tracking-tight">
-                    State-of-the-Art Event Manager
-                </h2>
-                <div className="flex items-center gap-6">
-                    <ShieldCheck size={20} className="text-[#6366f1] cursor-pointer hover:opacity-70 transition-all" />
-                    <HelpCircle size={20} className="text-[#6366f1] cursor-pointer hover:opacity-70 transition-all" />
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-gray-400">Password</label>
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Lock size={20} />
                 </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="w-full flex items-center justify-center p-4 relative z-10">
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="w-full max-w-[500px] bg-white rounded-[32px] shadow-[0_30px_100px_rgba(31,38,135,0.06)] overflow-hidden border border-gray-100/30"
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-12 text-gray-800 font-medium focus:ring-2 focus:ring-primary/20"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
                 >
-                    <div className="p-8 md:p-10">
-                        <div className="text-center mb-10">
-                            <h1 className="text-3xl md:text-4xl font-bold text-[#0f172a] tracking-tight mb-3">
-                                Secure Access
-                            </h1>
-                            <p className="text-slate-400 text-sm font-medium">
-                                Step 1: Verify your identity credentials.
-                            </p>
-                            
-                            <div className="mt-6">
-                                <span className="inline-flex items-center px-6 py-2 rounded-full bg-[#f4f5ff] text-[#6366f1] text-[10px] font-bold tracking-[0.1em] uppercase border border-[#6366f1]/5 shadow-sm">
-                                    Unified Identity Portal
-                                </span>
-                            </div>
-                        </div>
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
 
-                        <form onSubmit={handleSubmit} className="grid gap-6">
-                            <div>
-                                <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-3 pl-1">
-                                    Email (Admin) / Phone (User)
-                                </label>
-                                <div className="relative">
-                                    <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                    <input
-                                        type="text"
-                                        name="phone"
-                                        value={credentials.phone}
-                                        onChange={handleChange}
-                                        placeholder="Email or Phone Number"
-                                        className="w-full h-12 pl-14 pr-6 bg-[#fcfcff] border border-gray-100 rounded-2xl text-slate-700 font-medium placeholder:text-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500/20 transition-all shadow-sm"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[13px] font-bold text-slate-400 uppercase tracking-widest mb-3 pl-1">
-                                    Password
-                                </label>
-                                <div className="relative">
-                                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        value={credentials.password}
-                                        onChange={handleChange}
-                                        placeholder="••••••••"
-                                        className="w-full h-12 pl-14 pr-6 bg-[#fcfcff] border border-gray-100 rounded-2xl text-slate-700 font-medium tracking-widest placeholder:text-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500/20 transition-all shadow-sm"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between px-2 py-1">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <div className="relative w-5 h-5 rounded-md border border-gray-200 bg-white group-hover:border-indigo-300 transition-colors">
-                                        <input type="checkbox" className="sr-only peer" />
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-all">
-                                            <Check size={14} className="text-indigo-500" strokeWidth={3} />
-                                        </div>
-                                    </div>
-                                    <span className="text-slate-400 text-sm font-medium">Remember me</span>
-                                </label>
-                                <Link to="/forgot-password" size={14} className="text-indigo-500 text-sm font-bold hover:text-indigo-600 transition-colors">
-                                    Forgot Password?
-                                </Link>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#6366f1] to-[#0d6b82] text-white font-bold text-base shadow-[0_15px_40px_rgba(99,102,241,0.25)] hover:shadow-[0_20px_50px_rgba(99,102,241,0.35)] hover:translate-y-[-2px] active:translate-y-[0px] transition-all disabled:opacity-70 disabled:translate-y-0 disabled:shadow-lg flex items-center justify-center group"
-                            >
-                                <span className="relative z-10 transition-transform group-hover:scale-105">
-                                    {loading ? (
-                                        <motion.div 
-                                            animate={{ rotate: 360 }}
-                                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                            className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
-                                        />
-                                    ) : (
-                                        "Login"
-                                    )}
-                                </span>
-                            </button>
-                        </form>
-
-                        {error && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="mt-8 p-4 bg-red-50 rounded-2xl border border-red-100 text-red-600 text-sm font-medium text-center"
-                            >
-                                {error}
-                            </motion.div>
-                        )}
-
-                        <div className="mt-10 flex items-center justify-center gap-3 opacity-60">
-                            <div className="flex items-center gap-3 px-5 py-2 rounded-full bg-slate-50/50 border border-gray-50 border-dashed">
-                                <Shield size={14} className="text-[#0891b2]" />
-                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0d6b82]">
-                                    Secure Authentication Active
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </motion.div>
-            </main>
-
-            {/* Page Footer */}
-            <footer className="absolute bottom-0 w-full z-10 px-8 py-8 flex flex-col md:flex-row justify-between items-center gap-8 bg-white/50 backdrop-blur-sm opacity-80">
-                <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] text-center md:text-left">
-                    © 2024 State-of-the-Art Event Manager. Protected by the Ethereal Vault.
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl flex gap-3 items-center"
+              >
+                <ShieldAlert className="text-red-500 shrink-0" size={20} />
+                <p className="text-red-700 text-xs font-bold leading-tight uppercase tracking-tight">
+                  {error}
                 </p>
-                <div className="flex items-center gap-8 text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">
-                    <a href="#" className="hover:text-indigo-400 transition-colors">Privacy</a>
-                    <a href="#" className="hover:text-indigo-400 transition-colors">Terms</a>
-                    <a href="#" className="hover:text-indigo-400 transition-colors">Security</a>
-                </div>
-            </footer>
+              </motion.div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-primary py-5 rounded-2xl flex items-center justify-center gap-2 group disabled:opacity-70"
+            >
+              <span className="text-lg">{loading ? 'Verifying...' : 'Sign In Now'}</span>
+              {!loading && <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />}
+            </button>
+          </form>
+
+          <p className="mt-8 text-[10px] font-black uppercase tracking-widest text-gray-300 text-center leading-loose">
+            Demo: <span className="text-gray-600 underline">{demoCredentials[activeRole].id}</span> / <span className="text-gray-600 underline">{demoCredentials[activeRole].pass}</span>
+          </p>
         </div>
-    );
+      </motion.div>
+    </div>
+  );
 };
 
 export default Login;

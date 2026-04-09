@@ -15,15 +15,40 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (username, password) => {
-    const res = await api.post('auth/login/', { username, password });
-    return res.data; 
+    try {
+      console.log('Attempting login for:', username);
+      const res = await api.post('auth/login/', { username, password });
+      const data = res.data;
+
+      if (data.bypass_otp) {
+        setSession(data.user, data.access, data.refresh);
+        return { success: true, bypass: true, user: data.user };
+      }
+
+      return { success: true, bypass: false, username: data.username };
+    } catch (err) {
+      console.error('Login Error Object:', err);
+      // Extra check for backend specific error messages
+      const backendError = err.response?.data?.error || err.response?.data?.detail || 'Login Failed';
+      const errorMessage = typeof backendError === 'string' ? backendError : JSON.stringify(backendError);
+      
+      return { 
+        success: false, 
+        error: errorMessage.toUpperCase() // Forcing uppercase to match user screenshot style if needed, but keeping message
+      };
+    }
   };
 
   const verifyOTP = async (username, otp) => {
-    const res = await api.post('auth/verify-otp/', { username, otp });
-    const { access, refresh, user: userData } = res.data;
-    setSession(userData, access, refresh);
-    return userData;
+    try {
+      const res = await api.post('auth/verify-otp/', { username, otp });
+      const { access, refresh, user: userData } = res.data;
+      setSession(userData, access, refresh);
+      return userData;
+    } catch (err) {
+      console.error('OTP Error:', err);
+      throw err;
+    }
   };
 
   const logout = () => {
@@ -38,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, setSession, verifyOTP, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, verifyOTP, setSession, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

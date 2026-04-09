@@ -1,150 +1,154 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldAlert, ArrowLeft, RefreshCcw, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ShieldAlert, ArrowLeft, RefreshCcw, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import loginBg from '../assets/login-bg.png';
 
 const OTPVerification = () => {
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const { verifyOTP } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
-    
-    // Retrieve phone number from login navigation state
-    const phone = location.state?.phone;
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { verifyOTP } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const username = location.state?.username;
 
-    useEffect(() => {
-        if (!phone) {
-            navigate('/login');
-        }
-    }, [phone, navigate]);
+  useEffect(() => {
+    if (!username) {
+      navigate('/login');
+    }
+  }, [username, navigate]);
 
-    const handleChange = (element, index) => {
-        if (isNaN(element.value)) return false;
+  const handleChange = (value, index) => {
+    if (isNaN(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
 
-        setOtp([...otp.map((d, idx) => (idx === index ? element.value : d))]);
+    // Focus next input
+    if (value !== '' && index < 5) {
+      const nextInput = document.getElementById(`otp-${index + 1}`);
+      nextInput?.focus();
+    }
+  };
 
-        // Focus next input
-        if (element.nextSibling && element.value !== '') {
-            element.nextSibling.focus();
-        }
-    };
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
+      const prevInput = document.getElementById(`otp-${index - 1}`);
+      prevInput?.focus();
+    }
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const otpValue = otp.join('');
-        if (otpValue.length < 6) {
-            setError('Please enter the full 6-digit code.');
-            return;
-        }
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const otpValue = otp.join('');
+    if (otpValue.length < 6) {
+      setError('Please enter the full 6-digit code.');
+      return;
+    }
 
-        setLoading(true);
-        setError('');
-        try {
-            const user = await verifyOTP(phone, otpValue);
-            if (user && user.role) {
-                navigate(`/${user.role}/dashboard`);
-            }
-        } catch (err) {
-            setError(err.response?.data?.error || 'Invalid or Expired OTP');
-        } finally {
-            setLoading(false);
-        }
-    };
+    setLoading(true);
+    setError('');
+    try {
+      const user = await verifyOTP(username, otpValue);
+      if (user && user.role) {
+        navigate(`/${user.role.toLowerCase()}/dashboard`);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid or Expired OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <div className="min-h-screen bg-white text-[#0f172a] font-sans flex flex-col items-center justify-center relative overflow-hidden">
-            {/* Background Elements */}
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-20">
-                <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-purple-500/[0.05] blur-[150px] rounded-full" />
-                <div className="absolute bottom-0 left-0 w-[50%] h-[50%] bg-cyan-500/[0.05] blur-[150px] rounded-full" />
+  return (
+    <div className="min-h-screen w-full relative flex items-center justify-center overflow-hidden font-sans">
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat scale-105"
+        style={{ backgroundImage: `url(${loginBg})` }}
+      >
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"></div>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative z-10 w-full max-w-[480px] px-6"
+      >
+        <div className="glass-card rounded-[40px] p-10 flex flex-col items-center border border-white/40 shadow-2xl">
+          <button 
+            onClick={() => navigate('/login')}
+            className="self-start flex items-center gap-2 text-gray-500 text-sm font-bold hover:text-primary transition-colors mb-8 group"
+          >
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            Back to Login
+          </button>
+
+          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+            <Lock className="text-primary" size={32} />
+          </div>
+
+          <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Verify Identity</h1>
+          <p className="text-gray-500 font-medium mb-10 text-center">
+            Enter the 6-digit code sent to <br/>
+            <span className="text-gray-900 font-bold">{username}</span>
+          </p>
+
+          <form onSubmit={handleSubmit} className="w-full space-y-10">
+            <div className="flex justify-between gap-2">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-${index}`}
+                  type="text"
+                  maxLength="1"
+                  value={digit}
+                  onChange={(e) => handleChange(e.target.value, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                  className="w-12 h-16 text-center text-2xl font-black bg-gray-50 border-none rounded-xl text-gray-800 focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              ))}
             </div>
 
-            <main className="w-full flex items-center justify-center p-4 relative z-10">
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full max-w-[460px] bg-white rounded-[32px] shadow-[0_30px_100px_rgba(31,38,135,0.06)] border border-gray-100/30 p-10 md:p-12"
-                >
-                    <button 
-                        onClick={() => navigate('/login')}
-                        className="flex items-center gap-2 text-slate-400 text-sm font-bold hover:text-indigo-500 transition-colors mb-10 group"
-                    >
-                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                        Back to Login
-                    </button>
+            {error && (
+              <div className="bg-red-50 border border-red-100 p-3 rounded-xl text-red-500 text-xs font-bold text-center">
+                {error}
+              </div>
+            )}
 
-                    <div className="text-center mb-10">
-                        <div className="w-16 h-16 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                            <ShieldAlert className="text-indigo-600" size={32} />
-                        </div>
-                        <h1 className="text-3xl font-bold text-[#0f172a] tracking-tight mb-3">
-                            Verification Code
-                        </h1>
-                        <p className="text-slate-400 text-sm font-medium leading-relaxed">
-                            We've sent a 6-digit code to <br/>
-                            <span className="text-[#0f172a] font-bold">{phone}</span>
-                        </p>
-                    </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full btn-primary py-5 rounded-2xl flex items-center justify-center gap-2 group disabled:opacity-70"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                "Verify OTP"
+              )}
+            </button>
+          </form>
 
-                    <form onSubmit={handleSubmit} className="space-y-10">
-                        <div className="flex justify-between gap-3">
-                            {otp.map((data, index) => (
-                                <input
-                                    key={index}
-                                    type="text"
-                                    name="otp"
-                                    maxLength="1"
-                                    value={data}
-                                    onChange={e => handleChange(e.target, index)}
-                                    onFocus={e => e.target.select()}
-                                    className="w-12 h-14 md:w-14 md:h-16 text-center text-2xl font-bold bg-[#fcfcff] border border-gray-100 rounded-xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500/30 transition-all shadow-sm"
-                                />
-                            ))}
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#6366f1] to-[#0d6b82] text-white font-bold text-base shadow-[0_15px_40px_rgba(99,102,241,0.25)] hover:shadow-[0_20px_50px_rgba(99,102,241,0.35)] hover:translate-y-[-2px] active:translate-y-[0px] transition-all disabled:opacity-70 flex items-center justify-center group"
-                        >
-                            {loading ? (
-                                <motion.div 
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                    className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
-                                />
-                            ) : (
-                                "Verify OTP"
-                            )}
-                        </button>
-                    </form>
-
-                    {error && (
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="mt-6 p-4 bg-red-50 rounded-2xl border border-red-100 text-red-600 text-xs font-bold text-center"
-                        >
-                            {error}
-                        </motion.div>
-                    )}
-
-                    <div className="mt-10 pt-8 border-t border-gray-50 text-center">
-                        <p className="text-slate-400 text-xs font-medium mb-4">
-                            Didn't receive the code?
-                        </p>
-                        <button className="flex items-center gap-2 mx-auto text-indigo-500 text-xs font-bold hover:text-indigo-600 transition-colors">
-                            <RefreshCcw size={14} />
-                            Resend Code
-                        </button>
-                    </div>
-                </motion.div>
-            </main>
+          <div className="mt-10 w-full pt-8 border-t border-gray-100 text-center">
+            <p className="text-gray-400 text-xs font-bold mb-4 uppercase tracking-widest">
+              Didn't receive the code?
+            </p>
+            <button className="flex items-center gap-2 mx-auto text-primary text-sm font-black hover:opacity-80 transition-all uppercase tracking-tighter">
+              <RefreshCcw size={14} />
+              Resend Code
+            </button>
+          </div>
+          
+          <p className="mt-8 text-[10px] font-black uppercase tracking-widest text-gray-300">
+            For Demo, use <span className="text-primary italic">123456</span>
+          </p>
         </div>
-    );
+      </motion.div>
+    </div>
+  );
 };
 
 export default OTPVerification;
