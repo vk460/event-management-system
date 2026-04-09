@@ -1,4 +1,3 @@
-import sys
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -6,34 +5,27 @@ from django.db.models import Q
 User = get_user_model()
 
 class DualIdentifierBackend(ModelBackend):
+    """
+    Custom authentication backend that allows:
+    1. Admins to authenticate using email.
+    2. Other roles (Staff/Students) to authenticate using phone_number.
+    """
     def authenticate(self, request, username=None, password=None, **kwargs):
-        identifier = username or kwargs.get('email') or kwargs.get('phone_number')
-        
-        if not identifier:
+        if not username:
             return None
-            
-        sys.stderr.write(f"\n[AUTH] Identifying: {identifier}\n")
             
         try:
-            if '@' in identifier:
-                user = User.objects.filter(email=identifier).first()
+            # Check for email matches (intended for Admin)
+            if '@' in username:
+                user = User.objects.get(email=username)
             else:
-                user = User.objects.filter(Q(phone_number=identifier) | Q(username=identifier)).first()
+                # Check for phone_number matches (intended for Students/Staff)
+                user = User.objects.get(phone_number=username)
                 
-            if user:
-                sys.stderr.write(f"[AUTH] User Found: {user.email}\n")
-                if user.check_password(password):
-                    sys.stderr.write(f"[AUTH] Password Correct\n")
-                    return user
-                else:
-                    sys.stderr.write(f"[AUTH] Password FAILED\n")
-            else:
-                sys.stderr.write(f"[AUTH] User NOT Found\n")
-                
-        except Exception as e:
-            sys.stderr.write(f"[AUTH] Exception: {str(e)}\n")
+            if user.check_password(password):
+                return user
+        except User.DoesNotExist:
             return None
-            
         return None
 
     def get_user(self, user_id):

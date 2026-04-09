@@ -5,23 +5,17 @@ class AuditLog(models.Model):
     ACTION_CHOICES = (
         ('login', 'Login'),
         ('logout', 'Logout'),
-        ('otp_attempt', 'OTP Attempt'),
         ('event_creation', 'Event Creation'),
         ('event_approval', 'Event Approval'),
         ('file_upload', 'File Upload'),
         ('attendance_mark', 'Attendance Marking'),
         ('event_deletion', 'Event Deletion'),
     )
-    STATUS_CHOICES = (
-        ('success', 'Success'),
-        ('failed', 'Failed'),
-    )
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='audit_logs', null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='audit_logs')
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='success')
     message = models.TextField()
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username if self.user else 'Unknown'} - {self.action} ({self.status}) at {self.timestamp}"
+        return f"{self.user.username} - {self.action} at {self.timestamp}"

@@ -44,5 +44,5 @@ class PrincipalReportsView(views.APIView):
         # High level analytics
         logs = AuditLog.objects.order_by('-timestamp')[:50]
         return Response({
-            'activity_logs': list(logs.values('user__username', 'action', 'timestamp', 'message', 'ip_address', 'status'))
+            'activity_logs': list(logs.values('user__username', 'action', 'timestamp', 'message'))
         })
