@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from events.models import Event
+from apps.events.models import Event
 
 class Attendance(models.Model):
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='attendances')

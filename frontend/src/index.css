@@ -16,6 +16,9 @@
   --background-image-gradient-card-indigo: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
   
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --shadow-premium: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-vibrant: 0 15px 30px -5px rgba(249, 115, 22, 0.3);
 }
 
 @layer base {
@@ -24,45 +27,58 @@
   }
 }
 
-@layer components {
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
-  }
-  
-  .btn-primary {
-    @apply bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-semibold py-2 px-4 rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95;
-  }
+@utility glass-card {
+  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+}
 
-  .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all;
-  }
+@utility btn-primary {
+  @apply bg-gradient-to-r from-[#F97316] to-[#EF4444] text-white font-semibold py-2 px-4 rounded-xl transition-all duration-300 hover:shadow-lg active:scale-95;
+}
 
-  .sidebar-link-active {
-    @apply flex items-center gap-3 px-4 py-3 text-white bg-white/20 rounded-xl font-medium;
-  }
+@utility sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all;
+}
 
-  .stat-card {
-    @apply p-6 rounded-2xl text-white shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-95;
-  }
+@utility sidebar-link-active {
+  @apply flex items-center gap-3 px-4 py-3 text-white bg-white/20 rounded-xl font-medium;
+}
 
-  .gradient-card-orange { 
-    background-color: #F97316;
-    background-image: var(--background-image-gradient-card-orange, linear-gradient(135deg, #F97316 0%, #EA580C 100%)); 
-  }
-  .gradient-card-green { 
-    background-color: #10B981;
-    background-image: var(--background-image-gradient-card-green, linear-gradient(135deg, #10B981 0%, #059669 100%)); 
-  }
-  .gradient-card-purple { 
-    background-color: #A855F7;
-    background-image: var(--background-image-gradient-card-purple, linear-gradient(135deg, #A855F7 0%, #9333EA 100%)); 
-  }
-  .gradient-card-indigo { 
-    background-color: #6366F1;
-    background-image: var(--background-image-gradient-card-indigo, linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)); 
-  }
-  .bg-gradient-primary { @apply bg-gradient-primary; }
-  .bg-gradient-primary-horiz { @apply bg-gradient-primary-horiz; }
+@utility stat-card {
+  @apply p-6 rounded-2xl text-white shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-95;
+}
+
+@utility gradient-card-orange { 
+  background-color: #F97316;
+  background-image: var(--background-image-gradient-card-orange); 
+}
+
+@utility gradient-card-green { 
+  background-color: #10B981;
+  background-image: var(--background-image-gradient-card-green); 
+}
+
+@utility gradient-card-purple { 
+  background-color: #A855F7;
+  background-image: var(--background-image-gradient-card-purple); 
+}
+
+@utility gradient-card-indigo { 
+  background-color: #6366F1;
+  background-image: var(--background-image-gradient-card-indigo); 
+}
+
+@utility bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+}
+
+@utility bento-item {
+  @apply glass-card rounded-3xl p-6 transition-all duration-500 hover:shadow-2xl hover:translate-y-[-4px];
+}
+
+@utility premium-gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-[#F97316] to-[#EF4444];
 }
 
 /* Custom Scrollbar */

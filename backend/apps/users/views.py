@@ -7,13 +7,147 @@ from .serializers import RegisterSerializer, LoginSerializer, OTPSerializer, Use
 from .otp import generate_otp, send_otp_placeholder, verify_otp
 from django.contrib.auth import authenticate
 import sys
+import pandas as pd
+
+
+from django.db import transaction
+from apps.events.models import Department
+
+class BulkHODUploadView(views.APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request):
+        if request.user.role != 'principal' and not request.user.is_superuser:
+            return Response({"error": "Unauthorized. Only Principal can upload HOD data."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Handle JSON data (if parsed/edited on frontend)
+        data_list = request.data.get('data')
+        
+        if data_list:
+            if not isinstance(data_list, list):
+                return Response({"error": "Data must be a list of user objects."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            created_count = 0
+            skipped_rows = []
+
+            with transaction.atomic():
+                for index, row in enumerate(data_list):
+                    try:
+                        name = str(row.get('name', '')).strip()
+                        email = str(row.get('email', '')).strip()
+                        phone = str(row.get('phone_number', '')).strip()
+                        password = str(row.get('password', '')).strip()
+                        dept_code = str(row.get('department_code', '')).strip().upper()
+
+                        if not phone or not email:
+                            skipped_rows.append(f"Item {index+1}: Missing phone or email")
+                            continue
+
+                        if User.objects.filter(phone_number=phone).exists():
+                            skipped_rows.append(f"Item {index+1}: Phone {phone} already exists")
+                            continue
+                        
+                        if User.objects.filter(email=email).exists():
+                            skipped_rows.append(f"Item {index+1}: Email {email} already exists")
+                            continue
+
+                        dept = Department.objects.filter(code=dept_code).first()
+                        if not dept:
+                            skipped_rows.append(f"Item {index+1}: Department {dept_code} not found")
+                            continue
+
+                        User.objects.create_user(
+                            username=email,
+                            email=email,
+                            phone_number=phone,
+                            password=password,
+                            role='hod',
+                            first_name=name,
+                            department=dept
+                        )
+                        created_count += 1
+                    except Exception as e:
+                        skipped_rows.append(f"Item {index+1}: {str(e)}")
+
+            return Response({
+                "message": f"Successfully created {created_count} HOD accounts.",
+                "skipped": skipped_rows
+            }, status=status.HTTP_201_CREATED)
+
+        # Fallback to File upload logic
+        file = request.FILES.get('file')
+        if not file:
+            return Response({"error": "No data or file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            if file.name.endswith('.csv'):
+                df = pd.read_csv(file)
+            elif file.name.endswith(('.xlsx', '.xls')):
+                df = pd.read_excel(file)
+            else:
+                return Response({"error": "Invalid file format. Please upload .csv or .xlsx"}, status=status.HTTP_400_BAD_REQUEST)
+
+            required_cols = ['name', 'email', 'phone_number', 'password', 'department_code']
+            for col in required_cols:
+                if col not in df.columns:
+                    return Response({"error": f"Missing column: {col}"}, status=status.HTTP_400_BAD_REQUEST)
+
+            created_count = 0
+            skipped_rows = []
+
+            with transaction.atomic():
+                for index, row in df.iterrows():
+                    try:
+                        name = str(row['name'])
+                        email = str(row['email']).strip()
+                        phone = str(row['phone_number']).strip()
+                        password = str(row['password']).strip()
+                        dept_code = str(row['department_code']).strip().upper()
+
+                        if not phone or not email:
+                            skipped_rows.append(f"Row {index+2}: Missing phone or email")
+                            continue
+
+                        if User.objects.filter(phone_number=phone).exists():
+                            skipped_rows.append(f"Row {index+2}: Phone {phone} already exists")
+                            continue
+                        
+                        if User.objects.filter(email=email).exists():
+                            skipped_rows.append(f"Row {index+2}: Email {email} already exists")
+                            continue
+
+                        dept = Department.objects.filter(code=dept_code).first()
+                        if not dept:
+                            skipped_rows.append(f"Row {index+2}: Department {dept_code} not found")
+                            continue
+
+                        User.objects.create_user(
+                            username=email,
+                            email=email,
+                            phone_number=phone,
+                            password=password,
+                            role='hod',
+                            first_name=name,
+                            department=dept
+                        )
+                        created_count += 1
+                    except Exception as e:
+                        skipped_rows.append(f"Row {index+2}: {str(e)}")
+
+            return Response({
+                "message": f"Successfully created {created_count} HOD accounts.",
+                "skipped": skipped_rows
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({"error": f"Failed to process file: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = RegisterSerializer
 
-from logs.models import AuditLog
+from apps.logs.models import AuditLog
 
 class LoginView(views.APIView):
     permission_classes = (permissions.AllowAny,)
@@ -76,9 +210,17 @@ class AdminCreateUserView(views.APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
-            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user = serializer.save()
+                return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Format errors into a single string for easier frontend display
+        error_msgs = []
+        for field, errors in serializer.errors.items():
+            error_msgs.append(f"{field}: {', '.join(errors)}")
+        return Response({"error": "; ".join(error_msgs)}, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyOTPView(views.APIView):
     permission_classes = (permissions.AllowAny,)
@@ -153,3 +295,22 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = (permissions.IsAuthenticated,)
     def get_object(self):
         return self.request.user
+
+class HODListView(generics.ListAPIView):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    
+    def get_queryset(self):
+        if self.request.user.role not in ['principal', 'admin']:
+            return User.objects.none()
+        return User.objects.filter(role='hod')
+
+class HODDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = UserSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        if self.request.user.role not in ['principal', 'admin']:
+            return User.objects.none()
+        return User.objects.filter(role='hod')

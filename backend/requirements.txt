@@ -9,3 +9,5 @@ pillow
 requests
 gunicorn
 whitenoise
+pandas
+openpyxl

@@ -2,7 +2,7 @@ from rest_framework import generics, status, views, permissions
 from rest_framework.response import Response
 from .models import Attendance
 from .serializers import AttendanceSerializer
-from users.permissions import IsStudent, IsTeacher, IsHOD
+from apps.users.permissions import IsStudent, IsTeacher, IsHOD
 
 class AttendanceMarkView(generics.CreateAPIView):
     queryset = Attendance.objects.all()

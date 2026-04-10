@@ -1,9 +1,9 @@
 from rest_framework import views, permissions
 from rest_framework.response import Response
-from users.models import User
-from events.models import Event
-from attendance.models import Attendance
-from logs.models import AuditLog
+from apps.users.models import User
+from apps.events.models import Event
+from apps.attendance.models import Attendance
+from apps.logs.models import AuditLog
 
 class DashboardStatsView(views.APIView):
     permission_classes = (permissions.IsAuthenticated,)
@@ -32,8 +32,11 @@ class DashboardStatsView(views.APIView):
         elif user.role in ['principal', 'admin']:
             stats = {
                 'total_users': User.objects.count(),
+                'student_count': User.objects.filter(role='student').count(),
+                'teacher_count': User.objects.filter(role='teacher').count(),
                 'total_events': Event.objects.count(),
-                'security_logs': AuditLog.objects.count()
+                'department_count': 6, # Mocking for now as per Lovable design
+                'security_logs': AuditLog.objects.filter(status='failed').count()
             }
         return Response(stats)
 

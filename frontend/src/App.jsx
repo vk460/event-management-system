@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import AdminDashboard from './pages/Admin/Dashboard';
 import HODDashboard from './pages/HOD/Dashboard';
 import PrincipalDashboard from './pages/Principal/Dashboard';
+import PrincipalEventDetail from './pages/Principal/EventDetail';
 import TeacherDashboard from './pages/Teacher/Dashboard';
 import StudentDashboard from './pages/Student/Dashboard';
 
@@ -90,7 +91,7 @@ function App() {
                     <Route path="/principal/dashboard" element={<ProtectedRoute allowedRoles={['principal']}><PrincipalDashboard /></ProtectedRoute>} />
                     <Route path="/principal/departments" element={<ProtectedRoute allowedRoles={['principal']}><PrincipalDashboard /></ProtectedRoute>} />
                     <Route path="/principal/events" element={<ProtectedRoute allowedRoles={['principal']}><PrincipalDashboard /></ProtectedRoute>} />
-                    <Route path="/principal/reports" element={<ProtectedRoute allowedRoles={['principal']}><PrincipalDashboard /></ProtectedRoute>} />
+                    <Route path="/principal/events/:id" element={<ProtectedRoute allowedRoles={['principal']}><PrincipalEventDetail /></ProtectedRoute>} />
                     <Route path="/principal/upload" element={<ProtectedRoute allowedRoles={['principal']}><PrincipalDashboard /></ProtectedRoute>} />
                     
                     {/* Teacher Routes */}

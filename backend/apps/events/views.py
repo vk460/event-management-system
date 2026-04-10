@@ -1,8 +1,13 @@
 from rest_framework import generics, status, views, permissions
 from rest_framework.response import Response
-from .models import Event
-from .serializers import EventSerializer
-from users.permissions import IsTeacher, IsHOD, IsStudent
+from .models import Event, Department
+from .serializers import EventSerializer, DepartmentSerializer
+from apps.users.permissions import IsTeacher, IsHOD
+
+class DepartmentListView(generics.ListAPIView):
+    queryset = Department.objects.all()
+    serializer_class = DepartmentSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
 class EventCreateView(generics.CreateAPIView):
     queryset = Event.objects.all()
@@ -23,9 +28,23 @@ class EventListView(generics.ListAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
-        if self.request.user.role == 'hod':
-             return Event.objects.all() # HOD sees all
-        return Event.objects.filter(approved=True) # Others see approved
+        queryset = Event.objects.all()
+        dept_id = self.request.query_params.get('department_id')
+        dept_code = self.request.query_params.get('department_code')
+        
+        if dept_id:
+            queryset = queryset.filter(department_id=dept_id)
+        if dept_code:
+            queryset = queryset.filter(department__code=dept_code)
+
+        if self.request.user.role in ['hod', 'principal', 'admin']:
+             return queryset
+        return queryset.filter(approved=True)
+
+class EventDetailView(generics.RetrieveAPIView):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+    permission_classes = (permissions.IsAuthenticated,)
 
 class EventApproveView(views.APIView):
     permission_classes = (IsHOD,)
@@ -38,7 +57,7 @@ class EventApproveView(views.APIView):
         event.approved = True
         event.approved_by = request.user
         event.save()
-        from apps.logs.models import AuditLog
+        from logs.models import AuditLog
         AuditLog.objects.create(
             user=request.user,
             action='event_approval',
@@ -60,7 +79,7 @@ class EventDeleteView(views.APIView):
         
         title = event.title
         event.delete()
-        from apps.logs.models import AuditLog
+        from logs.models import AuditLog
         AuditLog.objects.create(
             user=request.user,
             action='event_deletion', # Note: need to add this to ACTION_CHOICES in AuditLog model

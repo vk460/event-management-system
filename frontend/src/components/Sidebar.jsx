@@ -12,6 +12,8 @@ import {
   ClipboardCheck,
   PlusCircle,
   FileUp,
+  FileText,
+  Building,
   History,
   User as UserIcon
 } from 'lucide-react';
@@ -47,9 +49,8 @@ const Sidebar = () => {
       case 'principal':
         return [
           { name: 'Dashboard', icon: LayoutDashboard, path: '/principal/dashboard' },
-          { name: 'Departments', icon: Users, path: '/principal/departments' },
+          { name: 'Departments', icon: Building, path: '/principal/departments' },
           { name: 'Events', icon: Calendar, path: '/principal/events' },
-          { name: 'Reports', icon: FileUp, path: '/principal/reports' },
           { name: 'Upload HODs', icon: PlusCircle, path: '/principal/upload' },
         ];
       case 'teacher':
@@ -79,8 +80,8 @@ const Sidebar = () => {
           <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
             <LayoutDashboard size={24} />
           </div>
-          <span className="text-2xl font-black tracking-tighter uppercase">
-            {user?.role}Portal
+          <span className="text-lg font-black tracking-tighter uppercase leading-none">
+            {user?.role} Portal
           </span>
         </div>
 

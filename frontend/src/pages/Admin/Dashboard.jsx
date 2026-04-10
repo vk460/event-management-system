@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { DashboardHeader, StatCard, TabBar, DataTable } from '../../components/DashboardUI';
+import { DashboardHeader, StatCard, TabBar, DataTable, Modal } from '../../components/DashboardUI';
 import { Users, Calendar, ShieldCheck, PieChart, Plus, Edit2, Trash2, ShieldAlert, Zap } from 'lucide-react';
 import api from '../../api/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
@@ -16,6 +16,9 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', phone_number: '', password: '', role: 'principal' });
+  const [formLoading, setFormLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -32,9 +35,10 @@ const AdminDashboard = () => {
       // Merge real stats with placeholders for metrics not in backend yet
       setStats({
         ...stats,
-        total_users: statsRes.data.total_users || 1304,
-        active_events: statsRes.data.total_events || 12,
-        failed_attempts: statsRes.data.security_logs || 3
+        total_users: statsRes.data.total_users || 0,
+        active_users: statsRes.data.active_users || 0,
+        active_events: statsRes.data.total_events || 0,
+        failed_attempts: statsRes.data.security_logs || 0
       });
 
       setLogs(logsRes.data.activity_logs || []);
@@ -51,6 +55,31 @@ const AdminDashboard = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    try {
+      await api.post('auth/admin-create-user/', newUser);
+      setIsModalOpen(false);
+      setNewUser({ name: '', email: '', phone_number: '', password: '', role: 'principal' });
+      fetchData();
+    } catch (err) {
+      console.error('Full Error:', err);
+      const errorData = err.response?.data;
+      let msg = 'Unknown error';
+      if (errorData?.error) {
+        msg = errorData.error;
+      } else if (typeof errorData === 'object') {
+        msg = Object.entries(errorData)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
+          .join('; ');
+      }
+      alert('Error creating user: ' + msg);
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -143,18 +172,68 @@ const AdminDashboard = () => {
         title="AdminPortal" 
         subtitle="System Administration" 
         actions={
-          <button className="btn-primary flex items-center gap-2">
+          <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
             <Plus size={20} />
             <span>Add User</span>
           </button>
         }
       />
 
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Principal">
+        <form onSubmit={handleAddUser} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-gray-400">Full Name</label>
+            <input 
+              required
+              className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary/20"
+              value={newUser.name}
+              onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-gray-400">Email Address</label>
+            <input 
+              type="email"
+              required
+              className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary/20"
+              value={newUser.email}
+              onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-gray-400">Phone Number</label>
+            <input 
+              required
+              className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary/20"
+              value={newUser.phone_number}
+              onChange={(e) => setNewUser({...newUser, phone_number: e.target.value})}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold uppercase text-gray-400">Initial Password</label>
+            <input 
+              type="password"
+              required
+              className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary/20"
+              value={newUser.password}
+              onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={formLoading}
+            className="w-full btn-primary py-4 rounded-xl mt-4 font-bold shadow-lg shadow-primary/20 disabled:opacity-50"
+          >
+            {formLoading ? 'Creating...' : 'Create Principal Account'}
+          </button>
+        </form>
+      </Modal>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         <StatCard title="Total Users" value={stats.total_users} icon={Users} gradient="gradient-card-orange" />
-        <StatCard title="Active Events" value={stats.active_events} icon={Calendar} gradient="gradient-card-green" />
-        <StatCard title="Login Today" value={stats.login_today} icon={Zap} gradient="gradient-card-purple" />
-        <StatCard title="Failed Attempts" value={stats.failed_attempts} icon={ShieldAlert} gradient="gradient-card-indigo" />
+        <StatCard title="Active Users" value={stats.active_users} icon={Zap} gradient="gradient-card-purple" />
+        <StatCard title="Total Events" value={stats.active_events} icon={Calendar} gradient="gradient-card-green" />
+        <StatCard title="Security Alerts" value={stats.failed_attempts} icon={ShieldAlert} gradient="gradient-card-indigo" />
       </div>
 
       <TabBar 
