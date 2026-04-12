@@ -1,0 +1,189 @@
+const ManageTeachersSection = () => {
+  const [existingTeachers, setExistingTeachers] = useState([]);
+  const [editingUser, setEditingUser] = useState(null);
+  const [previewData, setPreviewData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchTeachers();
+  }, []);
+
+  const fetchTeachers = async () => {
+    try {
+      const res = await api.get('users/teachers/');
+      setExistingTeachers(res.data);
+    } catch (err) { }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      const normalized = data.map(row => {
+          const newRow = {};
+          Object.keys(row).forEach(key => {
+              const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+              newRow[cleanKey] = row[key];
+          });
+          return newRow;
+      });
+      setPreviewData(normalized);
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleCommit = async () => {
+    setLoading(true);
+    try {
+      const res = await api.post('users/bulk-teacher-upload/', { data: previewData });
+      toast.success(res.data.message);
+      setPreviewData([]);
+      fetchTeachers();
+    } catch (err) {
+      toast.error("Upload failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Are you sure you want to delete all Teachers in your department?")) return;
+    try {
+      await api.delete('users/bulk-teacher-delete/');
+      toast.success("All Teachers deleted.");
+      fetchTeachers();
+    } catch (err) {
+      toast.error("Failed to delete Teachers.");
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this teacher?")) return;
+    try {
+      await api.delete(`users/teachers/${id}/`);
+      toast.success("Teacher deleted successfully!");
+      fetchTeachers();
+    } catch (err) {
+      toast.error("Failed to delete.");
+    }
+  };
+
+  const handleSaveEdit = async (id, data) => {
+    try {
+      await api.patch(`users/teachers/${id}/`, data);
+      toast.success("Teacher updated successfully!");
+      fetchTeachers();
+    } catch (err) {
+      toast.error("Failed to update Teacher.");
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {previewData.length === 0 ? (
+        <div className="max-w-2xl mx-auto">
+          <label className="group relative block p-16 border-4 border-dashed border-gray-200 rounded-[40px] cursor-pointer hover:border-orange-500 transition-all text-center bg-white/50 backdrop-blur-sm shadow-xl overflow-hidden">
+            <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+              <FileUp size={40} className="text-orange-500" />
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 uppercase">Upload Faculty Excel</h3>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">Initialize Department Instructors</p>
+          </label>
+        </div>
+      ) : (
+        <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div>
+              <h3 className="text-xl font-black text-gray-900 uppercase">Preview Teachers</h3>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{previewData.length} records ready</p>
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => setPreviewData([])} className="px-6 py-2 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-100">Cancel</button>
+              <button disabled={loading} onClick={handleCommit} className="px-8 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold shadow-lg hover:shadow-orange-500/30 transition-all">
+                {loading ? "Committing..." : "Commit Faculty"}
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-white border-b border-gray-100">
+                  {['Name', 'Email', 'Phone', 'Password', 'Department'].map((h, i) => (
+                    <th key={i} className="px-8 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {previewData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-orange-50/30">
+                    <td className="px-8 py-4 font-black text-gray-900 uppercase">{row.name || row.first_name || row.Name || row.First_Name || '-'}</td>
+                    <td className="px-8 py-4 text-gray-500 font-medium">{row.email || row.Email || '-'}</td>
+                    <td className="px-8 py-4 font-mono text-gray-600">{row.phone_number || row.phone || row.Phone || '-'}</td>
+                    <td className="px-8 py-4 text-gray-500 font-medium">{row.password || row.Password || '******'}</td>
+                    <td className="px-8 py-4 font-black text-gray-900 uppercase">{row.department || row.Department || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Inventory Table */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl overflow-hidden mt-12">
+        <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Department Faculty</h2>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Management of authorized instructors</p>
+          </div>
+          <button onClick={handleDeleteAll} className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold transition-colors">
+            <Trash2 size={18} /> Delete All
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                {['Name', 'Email', 'Phone', 'Password', 'Department', 'Actions'].map((h, i) => (
+                  <th key={i} className="px-8 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {existingTeachers.map((t) => (
+                <tr key={t.id} className="hover:bg-orange-50/20">
+                  <td className="px-8 py-6 font-black uppercase text-gray-900">{t.name || t.first_name || t.username}</td>
+                  <td className="px-8 py-6 text-gray-500 font-medium">{t.email}</td>
+                  <td className="px-8 py-6 font-mono text-gray-600">{t.phone_number}</td>
+                  <td className="px-8 py-6 text-gray-400 font-mono italic">******</td>
+                  <td className="px-8 py-6">
+                    <span className="px-4 py-1.5 bg-orange-50 text-orange-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-100 italic">
+                      {t.department_name || 'UNKNOWN'}
+                    </span>
+                  </td>
+                  <td className="px-8 py-6 flex gap-2">
+                    <button onClick={() => setEditingUser(t)} className="p-3 hover:bg-orange-50 text-gray-400 hover:text-orange-500 rounded-2xl transition-all"><Settings size={18} /></button>
+                    <button onClick={() => handleDeleteUser(t.id)} className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-2xl transition-all"><Trash2 size={18} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <EditModal 
+        isOpen={!!editingUser} 
+        onClose={() => setEditingUser(null)} 
+        user={editingUser} 
+        onSave={handleSaveEdit}
+      />
+    </div>
+  );
+};

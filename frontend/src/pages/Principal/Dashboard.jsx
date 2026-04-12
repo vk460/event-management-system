@@ -7,52 +7,51 @@ import {
   Calendar, 
   GraduationCap, 
   Building, 
-  TrendingUp, 
-  Clock, 
-  ChevronRight,
-  PlusCircle,
-  LayoutDashboard,
   Search,
-  ShieldAlert,
-  Filter,
-  CheckCircle2,
-  Clock3,
-  SearchCode,
-  ArrowRight,
-  MapPin,
-  Tag,
-  FileText,
-  Edit3,
-  Database,
-  Trash2,
-  HardHat,
-  Monitor,
-  Radio,
+  FileUp,
+  BarChart2,
   Settings,
-  Zap,
-  Brain,
-  Check,
-  X,
-  Plus
+  CalendarDays,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  User,
+  Trash2,
+  FileText
 } from 'lucide-react';
 import api from '../../api/api';
+import toast from 'react-hot-toast';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie
+  BarChart, Bar, Cell, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Overview Stat Card
+const StatCard = ({ label, value, icon: Icon, gradientClass }) => (
+  <div className="bg-white/80 backdrop-blur-md border border-gray-100 p-6 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-between group">
+    <div>
+      <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-2">{label}</p>
+      <h3 className="text-4xl font-black text-gray-900 tracking-tighter">{value}</h3>
+    </div>
+    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform ${gradientClass}`}>
+      <Icon size={28} />
+    </div>
+  </div>
+);
+
 const PrincipalDashboard = () => {
-  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+  
   const [stats, setStats] = useState({
-    total_events: 35,
-    student_count: 12,
-    teacher_count: 58,
-    department_count: 5
+    total_events: 0,
+    student_count: 0,
+    teacher_count: 0,
+    hod_count: 0,
+    pending_approvals: 0
   });
-  const [loading, setLoading] = useState(true);
-  const path = location.pathname;
+
+  // Tabs array removed as sidebar handles it
 
   useEffect(() => {
     fetchStats();
@@ -61,43 +60,35 @@ const PrincipalDashboard = () => {
   const fetchStats = async () => {
     try {
       const res = await api.get('dashboard/stats/');
-      setStats(res.data);
+      setStats({
+          total_events: res.data.total_events || 0,
+          student_count: res.data.student_count || 0,
+          teacher_count: res.data.teacher_count || 0,
+          department_count: res.data.department_count || 0,
+          hod_count: res.data.hod_count || 0,
+          pending_approvals: res.data.pending_approvals || 0
+      });
     } catch (err) {
-      console.error("Failed to fetch principal stats:", err);
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
   };
 
   const renderContent = () => {
-    if (path.includes('/departments')) return <DepartmentsSection />;
-    if (path.includes('/events')) return <EventsSection />;
-    if (path.includes('/upload')) return <UploadSection />;
-    return <OverviewSection stats={stats} />;
+    switch(activeTab) {
+      case 'overview': return <OverviewSection stats={stats} />;
+      case 'manage_hods': return <ManageHODsSection />;
+      case 'event_approval': return <EventApprovalSection />;
+      case 'analytics': return <AnalyticsSection />;
+      default: return <OverviewSection stats={stats} />;
+    }
   };
-
-  if (loading) return (
-    <Layout>
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-      </div>
-    </Layout>
-  );
 
   return (
     <Layout>
-      <div className="space-y-8 animate-in fade-in duration-700">
-        <header className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <Building size={16} className="text-gray-400" />
-            <p className="text-[10px] font-black tracking-[0.3em] text-gray-400 uppercase">Institution Overview</p>
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">PrincipalPortal</h1>
-        </header>
-        
+      <div className="max-w-[1400px] animate-in fade-in duration-700">
         <AnimatePresence mode="wait">
           <motion.div
-            key={path}
+            key={activeTab}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -111,685 +102,530 @@ const PrincipalDashboard = () => {
   );
 };
 
-/* --- Sub-Sections --- */
+// --- SUB-SECTIONS --- //
 
-const OverviewSection = ({ stats }) => {
-  const chartData = [
-    { name: 'Jan', value: 4 },
-    { name: 'Feb', value: 6 },
-    { name: 'Mar', value: 8 },
-    { name: 'Apr', value: 12 },
-    { name: 'May', value: 10 },
-  ];
-
-  const barData = [
-    { name: 'CS', value: 12, fill: '#F97316' },
-    { name: 'ECE', value: 8, fill: '#F97316' },
-    { name: 'Arts', value: 6, fill: '#F97316' },
-    { name: 'Civil', value: 5, fill: '#F97316' },
-    { name: 'EEE', value: 3, fill: '#F97316' },
-  ];
-
-  const pieData = [
-    { name: 'Present', value: 70, fill: '#10B981' },
-    { name: 'Absent', value: 15, fill: '#F97316' },
-    { name: 'On Leave', value: 15, fill: '#A855F7' },
-  ];
-
-  return (
-    <div className="space-y-8">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Total Events" 
-          value={stats.total_events} 
-          icon={Calendar} 
-          variant="orange" 
-        />
-        <StatCard 
-          label="Students" 
-          value={stats.student_count} 
-          icon={Users} 
-          variant="green" 
-        />
-        <StatCard 
-          label="Teachers" 
-          value={stats.teacher_count} 
-          icon={GraduationCap} 
-          variant="purple" 
-        />
-        <StatCard 
-          label="Departments" 
-          value={stats.department_count} 
-          icon={Building} 
-          variant="indigo" 
-        />
-      </div>
-
-      <div className="grid grid-cols-12 gap-6">
-        {/* Dept Bar Chart */}
-        <div className="col-span-12 lg:col-span-4 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-black mb-10 text-gray-900 italic">Events per Department</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} />
-                <Tooltip cursor={{fill: '#f8fafc'}} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Monthly Trends */}
-        <div className="col-span-12 lg:col-span-4 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-black mb-10 text-gray-900 italic">Monthly Trends</h3>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11, fontWeight: 700}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 11}} />
-                <Tooltip />
-                <Area type="monotone" dataKey="value" stroke="#EC4899" strokeWidth={4} fill="none" dot={{ r: 6, fill: '#EC4899', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Overall Attendance */}
-        <div className="col-span-12 lg:col-span-4 bg-white p-8 rounded-[32px] border border-gray-100 shadow-sm">
-          <h3 className="text-xl font-black mb-10 text-gray-900 italic">Overall Attendance</h3>
-          <div className="h-[300px] flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+const OverviewSection = ({ stats }) => (
+  <div className="space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <StatCard label="Departments" value={stats.department_count} icon={Building} gradientClass="bg-gradient-to-br from-indigo-500 to-purple-600" />
+      <StatCard label="HODs" value={stats.hod_count} icon={Users} gradientClass="bg-gradient-to-br from-orange-500 to-red-500" />
+      <StatCard label="Teachers" value={stats.teacher_count} icon={GraduationCap} gradientClass="bg-gradient-to-br from-emerald-400 to-teal-500" />
+      <StatCard label="Students" value={stats.student_count} icon={Users} gradientClass="bg-gradient-to-br from-pink-500 to-rose-500" />
+      <StatCard label="Total Events" value={stats.total_events} icon={Calendar} gradientClass="bg-gradient-to-br from-blue-500 to-cyan-500" />
+      <StatCard label="Pending Action" value={stats.pending_approvals} icon={CheckCircle2} gradientClass="bg-gradient-to-br from-amber-500 to-orange-600" />
     </div>
-  );
-};
+  </div>
+);
 
-const DepartmentsSection = () => {
-  const defaultDepts = [
-    { id: 1, name: 'Computer', code: 'CS' },
-    { id: 2, name: 'Civil', code: 'CIVIL' },
-    { id: 3, name: 'ENTC', code: 'ENTC' },
-    { id: 4, name: 'Mechanical', code: 'MECH' },
-    { id: 5, name: 'Electrical', code: 'ELEC' },
-    { id: 6, name: 'AI/DS', code: 'AI/DS' },
-  ];
-  const [departments, setDepartments] = useState(defaultDepts);
-  const [selectedDept, setSelectedDept] = useState(null);
-  const defaultEvents = [
-    { id: 101, title: 'Hackathon 2026', description: 'Annual coding competition', event_date: '2026-05-15', status: 'upcoming' },
-    { id: 102, title: 'Tech Fest', description: 'Technology exhibition and demos', event_date: '2026-04-20', status: 'upcoming' },
-    { id: 103, title: 'Bridge Design', description: 'Bridge model competition', event_date: '2026-05-20', status: 'upcoming' },
-    { id: 104, title: 'Code Sprint', description: '24-hour coding sprint', event_date: '2026-03-10', status: 'completed', attendance_count: 120 },
-    { id: 105, title: 'Site Visit', description: 'Industrial site visit', event_date: '2026-02-15', status: 'completed', attendance_count: 45 },
-  ];
-  const [events, setEvents] = useState(defaultEvents);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('upcoming');
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchDepartments();
-    fetchData(); 
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await api.get('events/');
-      if (res.data && res.data.length > 0) {
-        setEvents(res.data);
-      }
-    } catch (err) {
-      console.error("Using default events due to API error:", err);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await api.get('events/departments/');
-      if (res.data && res.data.length > 0) {
-        setDepartments(res.data);
-      }
-    } catch (err) {
-      console.error("Using default departments due to API error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchDeptEvents = async (dept) => {
-    setSelectedDept(dept);
-    try {
-      const res = await api.get(`events/?department_id=${dept.id}`);
-      setEvents(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const getDeptStyles = (code) => {
-    const styles = {
-      'CS': { bg: 'bg-[#F97316]', icon: Monitor },
-      'CIVIL': { bg: 'bg-[#22C55E]', icon: HardHat },
-      'ENTC': { bg: 'bg-[#7C3AED]', icon: Radio },
-      'MECH': { bg: 'bg-[#0EA5E9]', icon: Settings },
-      'ELEC': { bg: 'bg-[#F59E0B]', icon: Zap },
-      'AI/DS': { bg: 'bg-[#D946EF]', icon: Brain },
-    };
-    return styles[code] || { bg: 'bg-gray-500', icon: Building };
-  };
-
-  const filteredEvents = events.filter(event => {
-    const isCompleted = event.status === 'completed' || new Date(event.event_date) < new Date();
-    return activeTab === 'upcoming' ? !isCompleted : isCompleted;
-  });
-
-  return (
-    <div className="space-y-12">
-      <div className="space-y-6">
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">Departments</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {departments.map((dept) => {
-            const { bg, icon: Icon } = getDeptStyles(dept.code);
-            const isActive = selectedDept?.id === dept.id;
-            
-            return (
-              <div 
-                key={dept.id} 
-                onClick={() => fetchDeptEvents(dept)}
-                className={`group cursor-pointer p-5 rounded-2xl transition-all duration-300 relative ${bg} ${
-                  isActive ? 'ring-2 ring-offset-2 ring-gray-900 scale-105 z-10 shadow-2xl' : 'hover:scale-105 shadow-md'
-                }`}
-              >
-                <div className="flex flex-col items-center gap-3 text-center text-white relative z-10">
-                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-md">
-                    <Icon size={24} strokeWidth={2.5} />
-                  </div>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest">{dept.name}</h3>
-                </div>
-                <div className="absolute right-2 bottom-2 opacity-10 text-white -rotate-12 group-hover:rotate-0 transition-transform">
-                    <Icon size={60} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-8">
-        <div className="space-y-4">
-           <h2 className="text-3xl font-black text-gray-900 tracking-tight italic">All Events</h2>
-           <div className="flex gap-10 border-b-2 border-gray-100">
-              {['upcoming', 'completed'].map(tab => (
-                  <button 
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`pb-3 text-sm font-black transition-all relative ${
-                        activeTab === tab ? 'text-gray-900 border-b-4 border-orange-500' : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)} Events
-                  </button>
-              ))}
-           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
-            {filteredEvents.length > 0 ? (
-              filteredEvents.map(event => (
-                <EventCard key={event.id} event={event} />
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center bg-white rounded-2xl border-2 border-dashed border-gray-100 shadow-inner">
-                  <Calendar size={48} className="mx-auto text-gray-100 mb-4" />
-                  <p className="text-gray-300 font-black uppercase tracking-[5px] text-[10px]">Registry Empty</p>
-              </div>
-            )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const EventsSection = () => {
-    return <DepartmentsSection />;
-};
-
-const EventCard = ({ event }) => {
-  const navigate = useNavigate();
-  const isCompleted = event.status === 'completed' || new Date(event.event_date) < new Date();
-  
-  return (
-    <div className="group bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <h4 className="text-xl font-black text-gray-900 italic tracking-tighter uppercase leading-tight">{event.title}</h4>
-          <span className={`flex-shrink-0 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-              isCompleted ? 'bg-gray-100 text-gray-500' : 'bg-emerald-50 text-emerald-600'
-          }`}>
-              {isCompleted ? 'completed' : 'upcoming'}
-          </span>
-        </div>
-        
-        <p className="text-gray-400 text-[11px] font-bold line-clamp-2 leading-relaxed h-8">{event.description}</p>
-        
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                <Calendar size={12} className="text-orange-500" /> {new Date(event.event_date).toLocaleDateString()}
-            </div>
-            {isCompleted && (
-                <div className="flex items-center gap-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                    <Users size={12} className="text-emerald-500" /> 120
-                </div>
-            )}
-        </div>
-
-        <div className="pt-2">
-            {isCompleted ? (
-                <button className="w-full bg-[#22C55E] text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#16A34A] transition-all shadow-lg shadow-emerald-500/10 active:scale-95">
-                    <FileText size={14} /> Download Report
-                </button>
-            ) : (
-                <button 
-                  onClick={() => navigate(`/principal/events/${event.id}`)}
-                  className="w-full bg-[#F97316] text-white py-3 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#EA580C] transition-all shadow-lg shadow-orange-500/10 active:scale-95"
-                >
-                    <Search size={14} /> View Details
-                </button>
-            )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-const UploadSection = () => {
-  const [file, setFile] = useState(null);
+const ManageHODsSection = () => {
+  const [existingHODs, setExistingHODs] = useState([]);
+  const [editingUser, setEditingUser] = useState(null);
   const [previewData, setPreviewData] = useState([]);
-  const [existingHods, setExistingHods] = useState([]);
-  const [allDepartments, setAllDepartments] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editingHODId, setEditingHODId] = useState(null);
-  const [editFormData, setEditFormData] = useState({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchHods();
-    fetchDepartments();
   }, []);
 
   const fetchHods = async () => {
     try {
       const res = await api.get('users/hods/');
-      setExistingHods(res.data);
+      setExistingHODs(res.data);
     } catch (err) {
-      console.error("Failed to fetch HODs", err);
-    }
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await api.get('events/departments/');
-      setAllDepartments(res.data);
-    } catch (err) {
-      console.error("Failed to fetch departments", err);
+      console.error(err);
     }
   };
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setResult(null);
-      setError(null);
-      
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        try {
-          const bstr = evt.target.result;
-          const wb = XLSX.read(bstr, { type: 'binary' });
-          const wsname = wb.SheetNames[0];
-          const ws = wb.Sheets[wsname];
-          const data = XLSX.utils.sheet_to_json(ws);
-          
-          const normalized = data.map(row => {
-            const newRow = {};
-            Object.keys(row).forEach(key => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      const normalized = data.map(row => {
+          const newRow = {};
+          Object.keys(row).forEach(key => {
               const cleanKey = key.trim().toLowerCase().replace(/\s+/g, '_');
               newRow[cleanKey] = row[key];
-            });
-            return newRow;
           });
-          setPreviewData(normalized);
-        } catch (err) {
-          setError("Failed to parse file. Please upload a valid Excel or CSV.");
-        }
-      };
-      reader.readAsBinaryString(selectedFile);
-    }
-  };
-
-  const handleCellEdit = (index, field, value) => {
-    const updated = [...previewData];
-    updated[index][field] = value;
-    setPreviewData(updated);
-  };
-
-  const removeRow = (index) => {
-      setPreviewData(previewData.filter((_, i) => i !== index));
+          return newRow;
+      });
+      setPreviewData(normalized);
+    };
+    reader.readAsBinaryString(file);
   };
 
   const handleCommit = async () => {
-    if (previewData.length === 0) {
-      setError("No data to upload.");
-      return;
-    }
-
-    setUploading(true);
-    setResult(null);
-    setError(null);
-
+    setLoading(true);
     try {
       const res = await api.post('users/bulk-hod-upload/', { data: previewData });
-      setResult(res.data);
-      if (res.data.skipped && res.data.skipped.length === 0) {
-          setPreviewData([]);
-          setFile(null);
-          // Auto refresh the inventory
-          fetchHods();
-      }
+      toast.success(res.data.message);
+      setPreviewData([]);
+      fetchHods();
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to commit data to database.");
+      toast.error("Upload failed.");
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
-  const handleDeleteHOD = async (id) => {
-      if (window.confirm("Are you sure you want to delete this HOD?")) {
-          try {
-              await api.delete(`users/hods/${id}/`);
-              fetchHods();
-          } catch (err) {
-              console.error(err);
-              alert("Failed to delete HOD");
-          }
-      }
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Are you sure you want to delete all HODs?")) return;
+    try {
+      await api.delete('users/bulk-hod-delete/');
+      toast.success("All HODs deleted.");
+      fetchHods();
+    } catch (err) {
+      toast.error("Failed to delete HODs.");
+    }
   };
 
-  const startEditingHOD = (hod) => {
-      setEditingHODId(hod.id);
-      setEditFormData({ 
-          first_name: hod.first_name, 
-          email: hod.email, 
-          phone_number: hod.phone_number,
-          department: hod.department 
-      });
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this hod?")) return;
+    try {
+      await api.delete(`users/hods/${id}/`);
+      toast.success("Hod deleted successfully!");
+      fetchHods();
+    } catch (err) {
+      toast.error("Failed to delete.");
+    }
   };
 
-  const handleSaveHOD = async (id) => {
-      try {
-          await api.patch(`users/hods/${id}/`, editFormData);
-          setEditingHODId(null);
-          fetchHods();
-      } catch (err) {
-          console.error(err);
-          alert("Failed to update HOD");
-      }
+  const handleSaveEdit = async (id, data) => {
+    try {
+      await api.patch(`users/hods/${id}/`, data);
+      toast.success("HOD updated successfully!");
+      fetchHods();
+    } catch (err) {
+      toast.error("Failed to update HOD.");
+    }
   };
 
   return (
-    <div className="space-y-12">
-      {/* Upload Section */}
-      <div className="bg-white rounded-[24px] p-8 border border-gray-100 shadow-sm">
-        {previewData.length === 0 ? (
-            <div className="max-w-md mx-auto space-y-8 py-8 text-center">
-                <div className="w-24 h-24 bg-orange-50 rounded-full flex items-center justify-center mx-auto">
-                <PlusCircle className="text-orange-500" size={48} />
-                </div>
-                
-                <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Bulk Initialize HODs</h2>
-                    <p className="text-gray-500 font-medium">Upload institutional directory to preview faculty credentials.</p>
-                </div>
-
-                <label className="cursor-pointer block border-2 border-dashed border-gray-100 rounded-[24px] p-12 hover:border-orange-500/50 transition-all group">
-                    <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="p-4 bg-gray-50 rounded-xl text-gray-400 group-hover:text-orange-500 transition-colors">
-                            <SearchCode size={32} />
-                        </div>
-                        <span className="text-sm font-black text-gray-900 uppercase tracking-widest">Select Institutional File</span>
-                    </div>
-                </label>
-                {error && <p className="text-red-500 text-xs font-bold uppercase">{error}</p>}
+    <div className="space-y-8">
+      {/* Upload Box */}
+      {previewData.length === 0 ? (
+        <div className="max-w-2xl mx-auto">
+          <label className="group relative block p-16 border-4 border-dashed border-gray-200 rounded-[40px] cursor-pointer hover:border-orange-500 transition-all text-center bg-white/50 backdrop-blur-sm shadow-xl overflow-hidden">
+            <input type="file" className="hidden" accept=".xlsx,.xls,.csv" onChange={handleFileChange} />
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+              <FileUp size={40} className="text-orange-500" />
             </div>
-        ) : (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center text-white">
-                            <Database size={20} />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-black text-gray-900 uppercase">Data Preview</h3>
-                            <p className="text-xs text-gray-400 font-bold uppercase">{previewData.length} records detected</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setIsEditing(!isEditing)}
-                            className={`px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
-                                isEditing ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                            }`}
-                        >
-                            <Edit3 size={16} /> {isEditing ? 'Lock' : 'Edit'}
-                        </button>
-                        <button 
-                            onClick={handleCommit}
-                            disabled={uploading}
-                            className="bg-orange-500 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg hover:bg-orange-600 transition-all"
-                        >
-                            {uploading ? 'Processing...' : 'Commit to Database'}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="border border-gray-200 overflow-hidden shadow-sm rounded-xl">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-900">
-                                    {['Name', 'Email', 'Phone Number', 'Dept Code', 'Actions'].map((head, i) => (
-                                        <th key={i} className="px-6 py-4 text-[10px] font-black text-white uppercase tracking-widest border-r border-gray-800">{head}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {previewData.map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 border-r border-gray-100 italic font-black text-gray-900">
-                                            {isEditing ? <input className="border-b border-orange-200 focus:border-orange-500 outline-none w-full bg-orange-50/10 px-1" value={row.name} onChange={(e)=>handleCellEdit(idx,'name',e.target.value)} /> : row.name}
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-gray-100 text-sm font-bold text-gray-500">
-                                            {isEditing ? <input className="border-b border-orange-200 focus:border-orange-500 outline-none w-full bg-orange-50/10 px-1" value={row.email} onChange={(e)=>handleCellEdit(idx,'email',e.target.value)} /> : row.email}
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-gray-100 text-sm font-bold text-gray-900">
-                                            {isEditing ? <input className="border-b border-orange-200 focus:border-orange-500 outline-none w-full bg-orange-50/10 px-1" value={row.phone_number} onChange={(e)=>handleCellEdit(idx,'phone_number',e.target.value)} /> : row.phone_number}
-                                        </td>
-                                        <td className="px-6 py-4 border-r border-gray-100 text-center">
-                                            {isEditing ? (
-                                                <input 
-                                                    className="border-b border-orange-500 text-[10px] font-black uppercase text-gray-900 bg-orange-50 px-2 py-1 rounded w-20 text-center outline-none" 
-                                                    value={row.department_code} 
-                                                    onChange={(e)=>handleCellEdit(idx,'department_code',e.target.value)} 
-                                                />
-                                            ) : (
-                                                <span className="text-[10px] font-black uppercase text-gray-900 bg-gray-100 px-3 py-1 rounded">{row.department_code}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <button onClick={() => removeRow(idx)} className="text-red-500 hover:scale-110 transition-transform"><Trash2 size={16} /></button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        )}
-      </div>
-
-      {/* Verified Inventory Section */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-            <h2 className="text-3xl font-black text-gray-900 tracking-tighter italic uppercase">Institutional Inventory</h2>
-            <div className="h-[2px] flex-grow bg-gray-100"></div>
-            <span className="px-4 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-full uppercase tracking-widest">{existingHods.length} Verified HODs</span>
+            <h3 className="text-2xl font-black text-gray-900 uppercase">Upload Excel</h3>
+            <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">Initialize Department Heads</p>
+          </label>
         </div>
-
-        <div className="bg-white border-2 border-gray-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="bg-gray-900">
-                            {['Name', 'Email/Identifier', 'Phone Number', 'Department', 'Access Control'].map((head, i) => (
-                                <th key={i} className="px-6 py-5 text-[10px] font-black text-white uppercase tracking-widest border-r border-white/10">{head}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y-2 divide-gray-900">
-                        {existingHods.map((hod) => (
-                            <tr key={hod.id} className="hover:bg-orange-50/50 transition-colors">
-                                <td className="px-6 py-5 border-r-2 border-gray-900">
-                                    {editingHODId === hod.id ? (
-                                        <input 
-                                            className="border-2 border-orange-500 px-3 py-1 text-sm font-black italic outline-none w-full"
-                                            value={editFormData.first_name}
-                                            onChange={(e) => setEditFormData({...editFormData, first_name: e.target.value})}
-                                        />
-                                    ) : (
-                                        <span className="text-sm font-black text-gray-900 italic uppercase">{hod.username}</span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-5 border-r-2 border-gray-900 text-sm font-bold text-gray-500">
-                                    {editingHODId === hod.id ? (
-                                        <input 
-                                            className="border-2 border-orange-500 px-3 py-1 text-sm font-bold outline-none w-full"
-                                            value={editFormData.email}
-                                            onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
-                                        />
-                                    ) : (
-                                        hod.email
-                                    )}
-                                </td>
-                                <td className="px-6 py-5 border-r-2 border-gray-900 text-sm font-black text-gray-900">
-                                    {editingHODId === hod.id ? (
-                                        <input 
-                                            className="border-2 border-orange-500 px-3 py-1 text-sm font-black outline-none w-full"
-                                            value={editFormData.phone_number}
-                                            onChange={(e) => setEditFormData({...editFormData, phone_number: e.target.value})}
-                                        />
-                                    ) : (
-                                        hod.phone_number
-                                    )}
-                                </td>
-                                <td className="px-6 py-5 border-r-2 border-gray-900 text-center">
-                                    {editingHODId === hod.id ? (
-                                        <select 
-                                            className="border-2 border-orange-500 px-2 py-1 text-[10px] font-black uppercase outline-none w-full bg-orange-50"
-                                            value={editFormData.department || ''}
-                                            onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
-                                        >
-                                            <option value="">Select Dept</option>
-                                            {allDepartments.map(dept => (
-                                                <option key={dept.id} value={dept.id}>{dept.code}</option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <span className="text-[10px] font-black uppercase text-white bg-gray-900 px-4 py-1.5 skew-x-[-12deg] inline-block">{hod.department_code || 'N/A'}</span>
-                                    )}
-                                </td>
-                                <td className="px-6 py-5">
-                                    <div className="flex items-center gap-4 justify-center">
-                                        {editingHODId === hod.id ? (
-                                           <div className="flex gap-2">
-                                                <button onClick={() => handleSaveHOD(hod.id)} className="bg-emerald-500 text-white p-2 rounded-lg hover:bg-emerald-600 shadow-sm"><Check size={16} /></button>
-                                                <button onClick={() => setEditingHODId(null)} className="bg-gray-100 text-gray-500 p-2 rounded-lg hover:bg-gray-200"><X size={16} /></button>
-                                           </div>
-                                        ) : (
-                                            <>
-                                                <button onClick={() => startEditingHOD(hod)} className="text-gray-400 hover:text-orange-500 transition-colors"><Edit3 size={18} /></button>
-                                                <button onClick={() => handleDeleteHOD(hod.id)} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
-                                            </>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+      ) : (
+        <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl overflow-hidden">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div>
+              <h3 className="text-xl font-black text-gray-900 uppercase">Preview Data</h3>
+              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{previewData.length} records detected</p>
             </div>
+            <div className="flex gap-4">
+              <button onClick={() => setPreviewData([])} className="px-6 py-2 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-100">Cancel</button>
+              <button disabled={loading} onClick={handleCommit} className="px-8 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold shadow-lg hover:shadow-orange-500/30 transition-all">
+                {loading ? "Committing..." : "Commit Data"}
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-white border-b border-gray-100">
+                  {['Name', 'Email', 'Phone', 'Password', 'Department'].map((h, i) => (
+                    <th key={i} className="px-8 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {previewData.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-orange-50/30">
+                    <td className="px-8 py-4 font-black text-gray-900 uppercase">{row.name || row.first_name || row.Name || row.First_Name || '-'}</td>
+                    <td className="px-8 py-4 text-gray-500 font-medium">{row.email || row.Email || '-'}</td>
+                    <td className="px-8 py-4 font-mono text-gray-600">{row.phone_number || row.phone || row.Phone || '-'}</td>
+                    <td className="px-8 py-4 text-gray-500 font-medium">{row.password || row.Password || '******'}</td>
+                    <td className="px-8 py-4 font-bold text-orange-500 uppercase">{row.department || row.Department || row.department_code || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
+
+      {/* Inventory Table */}
+      <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl overflow-hidden mt-12">
+        <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+          <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Department Heads</h2>
+          <button onClick={handleDeleteAll} className="flex items-center gap-2 px-6 py-3 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-bold transition-colors">
+            <Trash2 size={18} /> Delete All HODs
+          </button>
+        </div>
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-gray-50">
+              {['Name', 'Email', 'Phone', 'Password', 'Department', 'Actions'].map((h, i) => (
+                <th key={i} className="px-8 py-5 text-[10px] font-black uppercase text-gray-400 tracking-widest border-b border-gray-100">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {existingHODs.map((hod) => (
+              <tr key={hod.id} className="hover:bg-orange-50/20">
+                <td className="px-8 py-6 font-black uppercase text-gray-900">{hod.name || hod.first_name || hod.username}</td>
+                <td className="px-8 py-6 text-gray-500 font-medium">{hod.email}</td>
+                <td className="px-8 py-6 font-mono text-gray-600">{hod.phone_number || '---'}</td>
+                <td className="px-8 py-6 text-gray-400 font-medium tracking-widest">******</td>
+                <td className="px-8 py-6 font-bold text-orange-500 uppercase">{hod.department_name}</td>
+                <td className="px-8 py-6 flex gap-3">
+                  {/* Edits/Deletes would hook to individual endpoints */}
+                  <button onClick={() => setEditingUser(hod)} className="p-2 text-gray-400 hover:text-orange-500 transition-colors"><Settings size={18} /></button>
+                  <button onClick={() => handleDeleteUser(hod.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={18} /></button>
+                </td>
+              </tr>
+            ))}
+            {existingHODs.length === 0 && (
+              <tr><td colSpan="5" className="p-10 text-center text-gray-400 font-bold uppercase tracking-widest">No HODs active</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
+      <EditModal isOpen={!!editingUser} onClose={() => setEditingUser(null)} user={editingUser} onSave={handleSaveEdit} />
     </div>
   );
 };
 
-/* --- Stat Card Component --- */
+// Event Section
+const StatusBadge = ({ status }) => {
+  if (status === 'approved') return <span className="px-3 py-1 rounded-full text-xs font-semibold text-green-600 border border-green-400">Approved</span>;
+  if (status === 'rejected') return <span className="px-3 py-1 rounded-full text-xs font-semibold text-red-500 border border-red-400">Rejected</span>;
+  if (status === 'hod_approved') return <span className="px-3 py-1 rounded-full text-xs font-semibold text-orange-500 border border-orange-400">Awaiting Principal</span>;
+  if (status === 'pending') return <span className="px-3 py-1 rounded-full text-xs font-semibold text-amber-500 border border-amber-400">Awaiting HOD</span>;
+  return <span className="px-3 py-1 rounded-full text-xs font-semibold text-gray-400 border border-gray-300">Unknown</span>;
+};
 
-const StatCard = ({ label, value, icon: Icon, variant }) => {
-  const variants = {
-    orange: 'bg-orange-500',
-    green: 'bg-emerald-500',
-    purple: 'bg-purple-600',
-    indigo: 'bg-indigo-600',
+const EventDetailModal = ({ event, onClose }) => (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl relative">
+      <button onClick={onClose} className="absolute right-6 top-6 text-gray-400 hover:text-gray-900 text-xl">✕</button>
+      <div className="w-full h-40 bg-orange-50 rounded-xl flex items-center justify-center mb-6">
+        {event.image
+          ? <img src={event.image} alt={event.title} className="w-full h-full object-cover rounded-xl" />
+          : <CalendarDays size={48} className="text-orange-400" />}
+      </div>
+      <div className="flex items-start justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">{event.title}</h2>
+        <StatusBadge status={event.status} />
+      </div>
+      <div className="space-y-2 text-sm text-gray-600">
+        <div className="flex gap-2"><CalendarDays size={14} className="text-gray-400 mt-0.5" /><span>{new Date(event.start_time).toLocaleString()}</span></div>
+        <div className="flex gap-2"><User size={14} className="text-gray-400 mt-0.5" /><span>{event.created_by_name}</span></div>
+        {event.venue && <div className="flex gap-2"><span className="text-gray-400">📍</span><span>{event.venue}</span></div>}
+        {event.department_name && <div className="flex gap-2"><span className="text-gray-400">🏫</span><span>{event.department_name}</span></div>}
+      </div>
+      {event.description && (
+        <p className="mt-4 text-sm text-gray-500 border-t pt-4 leading-relaxed">{event.description}</p>
+      )}
+    </div>
+  </div>
+);
+
+const EventApprovalSection = () => {
+  const [events, setEvents] = useState([]);
+  const [eventTab, setEventTab] = useState('upcoming');
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  useEffect(() => { fetchEvents(); }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const res = await api.get('events/');
+      setEvents(res.data);
+    } catch (err) {}
   };
 
+  const handleViewReport = async (reportId) => {
+    try {
+      const res = await api.get(`events/reports/${reportId}/download/`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      window.open(url, '_blank');
+    } catch (err) {
+      toast.error('Report not available yet.');
+    }
+  };
+
+  const now = new Date();
+  const upcomingEvents = events.filter(ev => ev.status === 'approved' && new Date(ev.end_time || ev.start_time) >= now);
+  const completedEvents = events.filter(ev => ev.status === 'approved' && new Date(ev.end_time || ev.start_time) < now);
+  const pendingApprovals = events.filter(ev => ev.status === 'hod_approved');
+
+  const getDisplayedData = () => {
+    if (eventTab === 'upcoming') return upcomingEvents;
+    if (eventTab === 'completed') return completedEvents;
+    return pendingApprovals;
+  };
+
+  const handleAction = async (id, action) => {
+    try {
+      await api.post(`events/approve/${id}/`, { action });
+      toast.success(`Event ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
+      fetchEvents();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Action failed.');
+    }
+  };
+
+  const tabs = [
+    { id: 'upcoming', label: 'Upcoming Event' },
+    { id: 'completed', label: 'Completed Event' },
+    { id: 'approve', label: 'Approve Event' },
+  ];
+
   return (
-    <div className={`${variants[variant]} p-8 rounded-2xl text-white shadow-lg relative overflow-hidden group`}>
-      <div className="flex justify-between items-start relative z-10">
-        <div className="space-y-1">
-            <p className="text-5xl font-black tracking-tighter">{value}</p>
-            <h3 className="text-white/80 text-[10px] font-black uppercase tracking-[0.2em]">{label}</h3>
-        </div>
-        <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-md">
-           <Icon size={24} className="text-white" />
-        </div>
-    </div>
-    <div className="absolute -right-4 -bottom-4 opacity-5 rotate-12 group-hover:rotate-0 transition-transform duration-700">
-        <Icon size={120} className="text-white" />
-    </div>
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      {/* Tab Bar */}
+      <div className="flex border-b border-gray-200">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setEventTab(tab.id)}
+            className={`flex-1 py-4 text-sm font-semibold transition-all ${
+              eventTab === tab.id
+                ? 'text-orange-500 border-b-2 border-orange-500'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Cards Grid */}
+      <div className="p-6">
+        {getDisplayedData().length === 0 ? (
+          <div className="py-20 text-center text-gray-400">
+            <CalendarDays size={48} className="mx-auto text-orange-200 mb-4" />
+            <p className="font-semibold text-sm">No events found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {getDisplayedData().map(ev => (
+              <div key={ev.id} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="font-bold text-gray-900 text-base leading-tight">{ev.title}</h3>
+                  <StatusBadge status={ev.status} />
+                </div>
+                {/* Image placeholder */}
+                <div className="w-full h-36 bg-orange-50 rounded-xl flex items-center justify-center mb-4">
+                  {ev.image
+                    ? <img src={ev.image} alt={ev.title} className="w-full h-full object-cover rounded-xl" />
+                    : <CalendarDays size={40} className="text-orange-400" />}
+                </div>
+                {/* Meta */}
+                <div className="space-y-1 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <CalendarDays size={14} className="text-gray-400" />
+                    <span>{new Date(ev.start_time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <User size={14} className="text-gray-400" />
+                    <span>{ev.created_by_name || ev.department_name || 'Faculty'}</span>
+                  </div>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 flex-wrap">
+                  <button onClick={() => setSelectedEvent(ev)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors">
+                    <Eye size={13} /> View Details
+                  </button>
+                  {eventTab === 'completed' && ev.has_report && (
+                    <button onClick={() => handleViewReport(ev.report_id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition-colors">
+                      <FileText size={13} /> View Report
+                    </button>
+                  )}
+                  {eventTab === 'approve' && (
+                    <>
+                      <button onClick={() => handleAction(ev.id, 'approve')} className="px-4 py-1.5 rounded-lg bg-orange-500 text-white text-xs font-bold hover:bg-orange-600 transition-colors">
+                        Approve
+                      </button>
+                      <button onClick={() => handleAction(ev.id, 'reject')} className="px-4 py-1.5 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 transition-colors">
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {selectedEvent && <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />}
     </div>
   );
+};
+
+const AnalyticsSection = () => {
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        api.get('dashboard/analytics/principal/').then(res => {
+            setStats(res.data);
+            setLoading(false);
+        }).catch(() => setLoading(false));
+    }, []);
+
+    if (loading || !stats) return <div className="h-[400px] flex items-center justify-center bg-white/50 rounded-[40px] animate-pulse font-bold text-gray-400">Syncing Analytics...</div>;
+
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Row 1: Monthly Trends */}
+            <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl p-10">
+                <div className="flex justify-between items-center mb-10">
+                    <div>
+                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Institutional Event Trends</h2>
+                        <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Monthly distribution of approved events</p>
+                    </div>
+                    <CalendarDays size={20} className="text-orange-500" />
+                </div>
+                <div className="h-[350px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stats.monthly_stats}>
+                            <defs>
+                                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#ff5722" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#ff5722" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
+                            <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'}} />
+                            <Area type="monotone" dataKey="total" stroke="#ff5722" strokeWidth={4} fillOpacity={1} fill="url(#colorTotal)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Row 2: Department Comparisons */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl p-10">
+                    <div className="flex justify-between items-center mb-10">
+                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Events by Dept</h2>
+                        <BarChart2 size={20} className="text-orange-500" />
+                    </div>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.department_stats} layout="vertical">
+                                <XAxis type="number" hide />
+                                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={120} fontWeight="bold" axisLine={false} tickLine={false} />
+                                <Tooltip cursor={{fill: 'rgba(255,87,34,0.05)'}} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                                <Bar dataKey="event_count" fill="#ff5722" radius={[0, 10, 10, 0]} barSize={20}>
+                                    {stats.department_stats.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#ff5722' : '#f97316'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-xl rounded-[40px] border border-gray-100 shadow-2xl p-10">
+                    <div className="flex justify-between items-center mb-10">
+                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Avg. Participation</h2>
+                        <Users size={20} className="text-orange-500" />
+                    </div>
+                    <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats.department_stats}>
+                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
+                                <YAxis stroke="#94a3b8" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
+                                <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                                <Bar dataKey="participation_count" fill="#6366f1" radius={[10, 10, 0, 0]} barSize={30} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default PrincipalDashboard;
+
+const EditModal = ({ isOpen, onClose, user, onSave }) => {
+    const [formData, setFormData] = useState({
+        first_name: '', email: '', phone_number: '', password: ''
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                first_name: user.first_name || user.username || '',
+                email: user.email || '',
+                phone_number: user.phone_number || '',
+                password: '' // empty by default
+            });
+        }
+    }, [user]);
+
+    if (!isOpen || !user) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            const dataToPatch = {
+                first_name: formData.first_name,
+                email: formData.email,
+                phone_number: formData.phone_number
+            };
+            if (formData.password) {
+                dataToPatch.password = formData.password;
+            }
+            await onSave(user.id, dataToPatch);
+            onClose();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-[40px] p-10 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+                <button onClick={onClose} className="absolute right-8 top-8 text-gray-400 hover:text-gray-900 transition-colors">
+                    ✕
+                </button>
+                <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-8">Edit User</h3>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Name</label>
+                        <input type="text" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-orange-500" required />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Email</label>
+                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-orange-500" required />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Phone</label>
+                        <input type="text" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-mono focus:ring-2 focus:ring-orange-500" required />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">New Password (Leave blank to keep)</label>
+                        <input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-medium focus:ring-2 focus:ring-orange-500" placeholder="******" />
+                    </div>
+                    <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-black uppercase tracking-widest shadow-xl hover:shadow-orange-500/40 transition-all hover:-translate-y-1 mt-4 disabled:opacity-50">
+                        {isSubmitting ? "Saving..." : "Save Changes"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};

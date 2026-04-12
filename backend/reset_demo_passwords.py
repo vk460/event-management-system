@@ -4,7 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from users.models import User
+from apps.users.models import User
 
 def reset_passwords():
     demo_creds = {

@@ -15,7 +15,7 @@ def log_event_creation(sender, instance, created, **kwargs):
             action='event_creation',
             message=f"Event '{instance.title}' created by {instance.created_by.username}."
         )
-    elif instance.approved:
+    elif instance.status == 'approved':
         AuditLog.objects.create(
             user=instance.approved_by if instance.approved_by else instance.created_by,
             action='event_approval',

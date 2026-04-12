@@ -8,8 +8,17 @@ from .views import (
     ResetPasswordView,
     AdminCreateUserView,
     BulkHODUploadView,
+    BulkTeacherUploadView,
+    BulkStudentUploadView,
     HODListView,
-    HODDetailView
+    HODDetailView,
+    TeacherListView,
+    TeacherDetailView,
+    StudentListView,
+    StudentDetailView,
+    BulkHODDeleteView,
+    BulkTeacherDeleteView,
+    BulkStudentDeleteView
 )
 
 urlpatterns = [
@@ -21,6 +30,15 @@ urlpatterns = [
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
     path('admin-create-user/', AdminCreateUserView.as_view(), name='admin-create-user'),
     path('bulk-hod-upload/', BulkHODUploadView.as_view(), name='bulk-hod-upload'),
+    path('bulk-teacher-upload/', BulkTeacherUploadView.as_view(), name='bulk-teacher-upload'),
+    path('bulk-student-upload/', BulkStudentUploadView.as_view(), name='bulk-student-upload'),
+    path('bulk-hod-delete/', BulkHODDeleteView.as_view(), name='bulk-hod-delete'),
+    path('bulk-teacher-delete/', BulkTeacherDeleteView.as_view(), name='bulk-teacher-delete'),
+    path('bulk-student-delete/', BulkStudentDeleteView.as_view(), name='bulk-student-delete'),
     path('hods/', HODListView.as_view(), name='hod-list'),
     path('hods/<int:id>/', HODDetailView.as_view(), name='hod-detail'),
+    path('teachers/', TeacherListView.as_view(), name='teacher-list'),
+    path('teachers/<int:id>/', TeacherDetailView.as_view(), name='teacher-detail'),
+    path('students/', StudentListView.as_view(), name='student-list'),
+    path('students/<int:id>/', StudentDetailView.as_view(), name='student-detail'),
 ]

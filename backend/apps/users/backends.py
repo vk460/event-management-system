@@ -18,15 +18,20 @@ class DualIdentifierBackend(ModelBackend):
             if '@' in identifier:
                 user = User.objects.filter(email=identifier).first()
             else:
-                user = User.objects.filter(Q(phone_number=identifier) | Q(username=identifier)).first()
+                # Sanitize input: remove non-digits for phone matching
+                ident_clean = ''.join(filter(str.isdigit, identifier))
+                user = User.objects.filter(Q(phone_number=ident_clean) | Q(username=identifier)).first()
                 
             if user:
                 sys.stderr.write(f"[AUTH] User Found: {user.email}\n")
-                if user.check_password(password):
+                # Force strip password to handle accidental whitespaces
+                clean_password = password.strip() if password else ""
+                
+                if user.check_password(clean_password):
                     sys.stderr.write(f"[AUTH] Password Correct\n")
                     return user
                 else:
-                    sys.stderr.write(f"[AUTH] Password FAILED\n")
+                    sys.stderr.write(f"[AUTH] Password FAILED for {user.email} (len: {len(clean_password)})\n")
             else:
                 sys.stderr.write(f"[AUTH] User NOT Found\n")
                 

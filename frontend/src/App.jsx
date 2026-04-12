@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { motion } from 'framer-motion';
+import { Toaster } from 'react-hot-toast';
 import { ShieldAlert, Terminal, ArrowLeft, Cpu } from 'lucide-react';
 
 // Pages
@@ -12,6 +13,7 @@ import PrincipalDashboard from './pages/Principal/Dashboard';
 import PrincipalEventDetail from './pages/Principal/EventDetail';
 import TeacherDashboard from './pages/Teacher/Dashboard';
 import StudentDashboard from './pages/Student/Dashboard';
+import OTPVerification from './pages/OTPVerification';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
@@ -68,9 +70,11 @@ const Unauthorized = () => (
 function App() {
     return (
         <AuthProvider>
+            <Toaster position="top-right" reverseOrder={false} />
             <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/verify-otp" element={<OTPVerification />} />
                     <Route path="/unauthorized" element={<Unauthorized />} />
                     
                     {/* Admin Routes */}
@@ -98,7 +102,7 @@ function App() {
                     <Route path="/teacher/dashboard" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
                     <Route path="/teacher/create" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
                     <Route path="/teacher/events" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
-                    <Route path="/teacher/attendance" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
+                    <Route path="/teacher/upload" element={<ProtectedRoute allowedRoles={['teacher']}><TeacherDashboard /></ProtectedRoute>} />
                     
                     {/* Student Routes */}
                     <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />

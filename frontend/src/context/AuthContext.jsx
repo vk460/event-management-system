@@ -14,40 +14,39 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
   };
 
-  const login = async (username, password) => {
+  const login = async (identifier, password) => {
     try {
-      console.log('Attempting login for:', username);
-      const res = await api.post('auth/login/', { username, password });
+      console.log('Attempting login for:', identifier);
+      const res = await api.post('auth/login/', { identifier, password });
       const data = res.data;
 
-      if (data.bypass_otp) {
-        setSession(data.user, data.access, data.refresh);
-        return { success: true, bypass: true, user: data.user };
+      if (data.otp_sent) {
+        return { success: true, otpSent: true, identifier: data.identifier };
       }
 
-      return { success: true, bypass: false, username: data.username };
+      // Fallback (if bypass ever returned)
+      if (data.access) {
+         setSession(data.user, data.access, data.refresh);
+         return { success: true, bypass: true, user: data.user };
+      }
+
+      return { success: true, bypass: false, identifier: data.identifier };
     } catch (err) {
-      console.error('Login Error Object:', err);
-      // Extra check for backend specific error messages
-      const backendError = err.response?.data?.error || err.response?.data?.detail || 'Login Failed';
-      const errorMessage = typeof backendError === 'string' ? backendError : JSON.stringify(backendError);
-      
-      return { 
-        success: false, 
-        error: errorMessage.toUpperCase() // Forcing uppercase to match user screenshot style if needed, but keeping message
-      };
+      console.error('Login Error:', err);
+      const errorMessage = err.response?.data?.error || 'LOGIN FAILED';
+      return { success: false, error: errorMessage };
     }
   };
 
-  const verifyOTP = async (username, otp) => {
+  const verifyOTP = async (identifier, code) => {
     try {
-      const res = await api.post('auth/verify-otp/', { username, otp });
+      const res = await api.post('auth/verify-otp/', { identifier, code });
       const { access, refresh, user: userData } = res.data;
       setSession(userData, access, refresh);
       return userData;
     } catch (err) {
-      console.error('OTP Error:', err);
-      throw err;
+      console.error('OTP Error:', err.response?.data);
+      throw new Error(err.response?.data?.error || 'INVALID CODE');
     }
   };
 

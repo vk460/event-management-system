@@ -24,10 +24,10 @@ const Login = () => {
       
       if (result.success) {
         if (result.bypass) {
-          const role = (result.user?.role || 'admin').toLowerCase();
+          const role = (result.user?.role || 'student').toLowerCase();
           navigate(`/${role}/dashboard`);
         } else {
-          navigate('/verify-otp', { state: { username: result.username } });
+          navigate('/verify-otp', { state: { identifier: result.identifier } });
         }
       } else {
         setError(result.error);
@@ -62,8 +62,8 @@ const Login = () => {
             <Mail className="text-white" size={32} />
           </div>
           
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Welcome Back</h1>
-          <p className="text-white/60 text-sm font-medium mb-8 text-center uppercase tracking-widest">Sign in to your portal</p>
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Access Portal</h1>
+          <p className="text-white/60 text-sm font-medium mb-8 text-center uppercase tracking-widest">Email or Phone Number</p>
 
           <form onSubmit={handleSubmit} className="w-full space-y-5">
             <div className="space-y-1.5">
@@ -73,7 +73,7 @@ const Login = () => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Email or Username"
+                  placeholder="Email or Phone Number"
                   required
                   className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 focus:bg-white/10 transition-all font-medium"
                   value={formData.identifier}
