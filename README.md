@@ -1,1 +1,1 @@
-Event Managemnt with high security
+Event managemnt system implementing high security like encryption,authenticatin,two way authentication and audit logging
